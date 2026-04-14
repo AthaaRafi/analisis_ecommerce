@@ -1,0 +1,5 @@
+Status: BELUM DEPLOY
+
+Isi file ini dengan URL dashboard setelah deploy.
+Contoh format akhir:
+https://nama-dashboard.streamlit.app/
