@@ -6,3 +6,5 @@ customers_dataset.csv
 orders_dataset.csv
 order_items_dataset.csv
 Muhammad_Athaa_Rafi_Khairan_Proyek_Analisis_Data.ipynb
+!submission/data/
+!submission/data/*.csv
