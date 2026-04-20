@@ -224,7 +224,6 @@ def render_header() -> None:
 
 
 def render_sidebar_filter(min_date: pd.Timestamp, max_date: pd.Timestamp) -> tuple[pd.Timestamp, pd.Timestamp]:
-	st.sidebar.header("Filter Interaktif")
 	selected_range = st.sidebar.date_input(
 		"Pilih rentang tanggal",
 		value=(min_date.date(), max_date.date()),
@@ -240,6 +239,18 @@ def render_sidebar_filter(min_date: pd.Timestamp, max_date: pd.Timestamp) -> tup
 	end_ts = pd.Timestamp(end_date)
 	st.sidebar.caption(f"Menampilkan data {start_ts:%d %b %Y} s.d. {end_ts:%d %b %Y}")
 	return start_ts, end_ts
+
+
+def render_section_selector() -> str:
+	return st.sidebar.selectbox(
+		"Pilih tampilan",
+		[
+			"Tren Bulanan",
+			"Pelanggan Loyal",
+			"Segmentasi RFM",
+			"Catatan Analisis",
+		],
+	)
 
 
 def render_kpi_cards(monthly: pd.DataFrame, loyal_summary: dict[str, float]) -> None:
@@ -381,17 +392,15 @@ def main() -> None:
 
 	render_kpi_cards(monthly, loyal_summary)
 
-	tab1, tab2, tab3, tab4 = st.tabs(
-		["Tren Bulanan", "Pelanggan Loyal", "Segmentasi RFM", "Catatan Analisis"]
-	)
+	selected_section = render_section_selector()
 
-	with tab1:
+	if selected_section == "Tren Bulanan":
 		render_monthly_trend(monthly)
-	with tab2:
+	elif selected_section == "Pelanggan Loyal":
 		render_loyal_section(loyal_summary)
-	with tab3:
+	elif selected_section == "Segmentasi RFM":
 		render_rfm_segment(rfm_dist)
-	with tab4:
+	else:
 		render_insight_notes(loyal_summary)
 
 
