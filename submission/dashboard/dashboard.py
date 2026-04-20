@@ -100,6 +100,25 @@ def load_and_prepare_data(base_path: str) -> tuple[pd.DataFrame, pd.DataFrame, p
 	return merged_items, customer_orders, rfm_base
 
 
+def filter_by_date_range(
+	merged_items: pd.DataFrame,
+	customer_orders: pd.DataFrame,
+	rfm_base: pd.DataFrame,
+	start_date: pd.Timestamp,
+	end_date: pd.Timestamp,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+	merged_items_filtered = merged_items[
+		merged_items["order_purchase_timestamp"].between(start_date, end_date)
+	].copy()
+	customer_orders_filtered = customer_orders[
+		customer_orders["order_purchase_timestamp"].between(start_date, end_date)
+	].copy()
+	rfm_base_filtered = rfm_base[
+		rfm_base["order_purchase_timestamp"].between(start_date, end_date)
+	].copy()
+	return merged_items_filtered, customer_orders_filtered, rfm_base_filtered
+
+
 def build_monthly_metrics(merged_items: pd.DataFrame) -> pd.DataFrame:
 	monthly = (
 		merged_items.assign(Bulan=merged_items["order_purchase_timestamp"].dt.to_period("M"))
@@ -202,6 +221,25 @@ def render_header() -> None:
 		""",
 		unsafe_allow_html=True,
 	)
+
+
+def render_sidebar_filter(min_date: pd.Timestamp, max_date: pd.Timestamp) -> tuple[pd.Timestamp, pd.Timestamp]:
+	st.sidebar.header("Filter Interaktif")
+	selected_range = st.sidebar.date_input(
+		"Pilih rentang tanggal",
+		value=(min_date.date(), max_date.date()),
+		min_value=min_date.date(),
+		max_value=max_date.date(),
+	)
+	if isinstance(selected_range, tuple):
+		start_date, end_date = selected_range
+	else:
+		start_date = end_date = selected_range
+
+	start_ts = pd.Timestamp(start_date)
+	end_ts = pd.Timestamp(end_date)
+	st.sidebar.caption(f"Menampilkan data {start_ts:%d %b %Y} s.d. {end_ts:%d %b %Y}")
+	return start_ts, end_ts
 
 
 def render_kpi_cards(monthly: pd.DataFrame, loyal_summary: dict[str, float]) -> None:
@@ -325,9 +363,21 @@ def main() -> None:
 	render_header()
 
 	merged_items, customer_orders, rfm_base = load_and_prepare_data(__file__)
-	monthly = build_monthly_metrics(merged_items)
-	_loyal_df, loyal_summary = build_loyal_metrics(merged_items, customer_orders)
-	rfm_dist = build_rfm_distribution(rfm_base)
+	min_date = merged_items["order_purchase_timestamp"].min()
+	max_date = merged_items["order_purchase_timestamp"].max()
+	start_date, end_date = render_sidebar_filter(min_date, max_date)
+
+	filtered_items, filtered_customer_orders, filtered_rfm_base = filter_by_date_range(
+		merged_items, customer_orders, rfm_base, start_date, end_date
+	)
+
+	if filtered_items.empty:
+		st.warning("Tidak ada data pada rentang tanggal yang dipilih. Silakan ubah filter.")
+		return
+
+	monthly = build_monthly_metrics(filtered_items)
+	_loyal_df, loyal_summary = build_loyal_metrics(filtered_items, filtered_customer_orders)
+	rfm_dist = build_rfm_distribution(filtered_rfm_base)
 
 	render_kpi_cards(monthly, loyal_summary)
 
